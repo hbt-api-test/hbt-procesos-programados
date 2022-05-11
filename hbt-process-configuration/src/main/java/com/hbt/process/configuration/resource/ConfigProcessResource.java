@@ -78,6 +78,14 @@ public class ConfigProcessResource {
         ).build();
     }
 
+    @Path("/meses")
+    @GET
+    public Response getMoths(){
+        return Response.ok(
+                processService.getMonths()
+        ).build();
+    }
+
     @Path("/lista")
     @GET
     public Response getConfiguraciob(){

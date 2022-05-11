@@ -1,33 +1,48 @@
 package com.hbt.process.configuration.service;
 
 
+import com.hbt.process.configuration.model.*;
 import com.hbt.process.configuration.model.DTO.FrecuencyScheduledProcessDTO;
-import com.hbt.process.configuration.model.FrecuencyScheduledProcess;
-import com.hbt.process.configuration.model.ScheduledConfiguration;
-import com.hbt.process.configuration.model.WeekDays;
-import com.hbt.process.configuration.model.ScheduledProcesses;
+import com.hbt.process.configuration.model.DTO.MonthsScheduledDTO;
 import com.hbt.process.configuration.repository.IDaysRepository;
+import com.hbt.process.configuration.repository.IMonthRepository;
 import com.hbt.process.configuration.repository.IProcessConfiguration;
 import com.hbt.process.configuration.repository.IScheduledProcess;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
+import java.text.DateFormatSymbols;
+import java.time.Month;
+import java.time.format.TextStyle;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Slf4j
 public class ProcessService implements IProcessService {
 
-    @Inject
+
     IProcessConfiguration procesessRepository;
-
-    @Inject
-    IDaysRepository months;
-
-    @Inject
+    IDaysRepository daysRepository;
     IScheduledProcess processConfiguration;
+    IMonthRepository monthRepository;
+
+    public ProcessService(IProcessConfiguration procesessRepository,
+                          IDaysRepository daysRepository,
+                          IScheduledProcess processConfiguration,
+                          IMonthRepository monthRepository) {
+
+        this.procesessRepository = procesessRepository;
+        this.daysRepository = daysRepository;
+        this.processConfiguration = processConfiguration;
+        this.monthRepository = monthRepository;
+
+    }
+
+    private DateFormatSymbols formatSymbols = DateFormatSymbols.getInstance(new Locale("es"));
+
+
 
 
 
@@ -73,7 +88,7 @@ public class ProcessService implements IProcessService {
 
     @Override
     public List<WeekDays> getDays(){
-        return months.findAll();
+        return daysRepository.findAll();
     }
 
 
@@ -96,6 +111,40 @@ public class ProcessService implements IProcessService {
             frecuencies.add(map);
         }
         return frecuencies;
+    }
+
+    @Override
+    public List<MonthsScheduledDTO> getMonths() {
+
+        List<Months> meses = monthRepository.findAll();
+
+        if (meses.stream().count() == 0){
+            for(Month mes : Month.values()){
+                meses.add(Months.builder()
+                        .months(mes)
+                        .build());
+            }
+            monthRepository.saveAll(meses);
+        }
+
+
+        return meses.stream()
+                .map(month -> MonthsScheduledDTO.builder()
+                        .id(month.getId())
+                        .name(capitalLetter(month.getMonths().
+                                getDisplayName(TextStyle.FULL,
+                                        new Locale("es"))))
+                        .build()
+                )
+                .collect(Collectors.toList());
+
+
+
+    }
+
+
+    private String capitalLetter(String month){
+        return Character.toUpperCase(month.charAt(0)) + month.substring(1);
     }
 
 

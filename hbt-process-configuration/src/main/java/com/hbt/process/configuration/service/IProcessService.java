@@ -1,6 +1,7 @@
 package com.hbt.process.configuration.service;
 
 import com.hbt.process.configuration.model.DTO.FrecuencyScheduledProcessDTO;
+import com.hbt.process.configuration.model.DTO.MonthsScheduledDTO;
 import com.hbt.process.configuration.model.ScheduledConfiguration;
 import com.hbt.process.configuration.model.ScheduledProcesses;
 import com.hbt.process.configuration.model.WeekDays;
@@ -23,4 +24,6 @@ public interface IProcessService {
     List<ScheduledConfiguration> getScheduledConfiguration();
 
     List<FrecuencyScheduledProcessDTO> getFrecuencyScheduledProcess();
+
+    List<MonthsScheduledDTO> getMonths();
 }

@@ -7,8 +7,10 @@ import lombok.NoArgsConstructor;
 import javax.json.bind.annotation.JsonbTransient;
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "scheduled_configuration")
@@ -24,10 +26,10 @@ public class ScheduledConfiguration implements Serializable {
     @Enumerated(EnumType.ORDINAL)
     private FrecuencyScheduledProcess frecuency;
     private int day;
-    private int month;
     private int hour;
     private int minutes;
     private int dayOfMonth;
+    private int month;
 
     /*@OneToOne(fetch = FetchType.LAZY, mappedBy = "scheduledConfiguration")
     private ScheduledProcesses scheduledProcesses;*/
@@ -39,6 +41,16 @@ public class ScheduledConfiguration implements Serializable {
     )
     @ManyToMany( cascade = CascadeType.REFRESH)
     private List<WeekDays> daysOfWeek = new ArrayList<>();
+
+
+    @JoinTable(
+            name = "months_scheduled",
+            joinColumns = @JoinColumn(name = "scheduled_id"),
+            inverseJoinColumns = @JoinColumn(name = "months_id")
+    )
+    @ManyToMany( cascade = CascadeType.REFRESH)
+    private Set<Months> meses;
+
     private String cronExpresion;
 
 
