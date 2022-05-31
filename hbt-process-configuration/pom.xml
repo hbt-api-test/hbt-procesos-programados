@@ -14,6 +14,7 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <org.mapstruct.version>1.4.2.Final</org.mapstruct.version>
     </properties>
 
     <dependencies>
@@ -28,14 +29,22 @@
             <artifactId>quarkus-jdbc-h2</artifactId>
         </dependency>
 
+<!--
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>1.4.2.Final</version>
+            <version>${org.mapstruct.version}</version>
         </dependency>
-
-
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>${org.mapstruct.version}</version>
+            <scope>provided</scope>
+        </dependency>
+-->
 
     </dependencies>
+
+
 
 </project>

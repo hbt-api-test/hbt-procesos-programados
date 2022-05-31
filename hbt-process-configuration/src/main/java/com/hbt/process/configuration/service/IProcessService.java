@@ -1,29 +1,30 @@
 package com.hbt.process.configuration.service;
 
-import com.hbt.process.configuration.model.DTO.FrecuencyScheduledProcessDTO;
-import com.hbt.process.configuration.model.DTO.MonthsScheduledDTO;
-import com.hbt.process.configuration.model.ScheduledConfiguration;
-import com.hbt.process.configuration.model.ScheduledProcesses;
-import com.hbt.process.configuration.model.WeekDays;
+import com.hbt.scheduled.process.commons.model.DTO.FrecuencyScheduledProcessDTO;
+import com.hbt.scheduled.process.commons.model.DTO.MonthsScheduledDTO;
+import com.hbt.scheduled.process.commons.model.DTO.ScheduledProcessDTO;
+import com.hbt.scheduled.process.commons.model.DTO.WeekDaysDTO;
 
 import java.util.List;
 
 public interface IProcessService {
-    List<ScheduledProcesses> getProcessList();
+    List<ScheduledProcessDTO> getProcessList();
 
-    ScheduledProcesses getProcessById(Long id);
+    ScheduledProcessDTO getProcessById(Long id);
 
-    ScheduledProcesses create(ScheduledProcesses processes);
+    ScheduledProcessDTO create(ScheduledProcessDTO processes);
 
-    ScheduledProcesses update(ScheduledProcesses processes);
+    ScheduledProcessDTO update(ScheduledProcessDTO processes);
 
     void delete(Long id);
 
-    List<WeekDays> getDays();
-
-    List<ScheduledConfiguration> getScheduledConfiguration();
+    List<WeekDaysDTO> getDays();
 
     List<FrecuencyScheduledProcessDTO> getFrecuencyScheduledProcess();
 
     List<MonthsScheduledDTO> getMonths();
+
+
+
+
 }

@@ -1,16 +1,25 @@
 package com.hbt.process.configuration.model;
 
+import com.hbt.scheduled.process.commons.model.FrecuencyScheduledProcess;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.json.bind.annotation.JsonbTransient;
-import javax.persistence.*;
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "scheduled_configuration")
@@ -18,6 +27,7 @@ import java.util.Set;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ScheduledConfiguration implements Serializable {
 
     @Id
@@ -25,14 +35,10 @@ public class ScheduledConfiguration implements Serializable {
     private Long id;
     @Enumerated(EnumType.ORDINAL)
     private FrecuencyScheduledProcess frecuency;
-    private int day;
     private int hour;
     private int minutes;
     private int dayOfMonth;
-    private int month;
 
-    /*@OneToOne(fetch = FetchType.LAZY, mappedBy = "scheduledConfiguration")
-    private ScheduledProcesses scheduledProcesses;*/
 
     @JoinTable(
             name = "weekdays_scheduled",
@@ -49,7 +55,7 @@ public class ScheduledConfiguration implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "months_id")
     )
     @ManyToMany( cascade = CascadeType.REFRESH)
-    private Set<Months> meses;
+    private List<Months> months;
 
     private String cronExpresion;
 

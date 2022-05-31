@@ -1,9 +1,9 @@
 package com.hbt.process.configuration.resource;
 
-import com.hbt.process.configuration.model.ScheduledProcesses;
+import com.hbt.process.configuration.model.mapper.IScheduledProcessMapper;
 import com.hbt.process.configuration.service.ProcessService;
+import com.hbt.scheduled.process.commons.model.DTO.ScheduledProcessDTO;
 import lombok.extern.slf4j.Slf4j;
-
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -29,6 +29,7 @@ public class ConfigProcessResource {
     @Inject
     ProcessService processService;
 
+
     @Path("/list")
     @GET
     public Response getListProcess(){
@@ -41,13 +42,15 @@ public class ConfigProcessResource {
     @GET
     public Response getProcess(@PathParam("id") Long id){
         return Response.ok(
-                        processService.getProcessById(id))
+                        processService.getProcessById(id)
+                )
                 .build();
     }
 
     @Path("/create")
     @POST
-    public Response createProcess(@Valid ScheduledProcesses processes){
+    public Response createProcess(@Valid ScheduledProcessDTO processes){
+        log.info("Esta en el create " + processes);
         return Response.ok(
                 processService.create(processes)
         ).build();
@@ -55,7 +58,7 @@ public class ConfigProcessResource {
 
     @Path("/update")
     @PUT
-    public Response updateProcess(@Valid ScheduledProcesses processes){
+    public Response updateProcess(@Valid ScheduledProcessDTO processes){
         return Response.ok(
                 processService.update(processes)
         ).build();
@@ -86,11 +89,8 @@ public class ConfigProcessResource {
         ).build();
     }
 
-    @Path("/lista")
-    @GET
-    public Response getConfiguraciob(){
-        return Response.ok(processService.getScheduledConfiguration()).build();
-    }
+
+
 
     @Path("/frecuencia")
     @GET

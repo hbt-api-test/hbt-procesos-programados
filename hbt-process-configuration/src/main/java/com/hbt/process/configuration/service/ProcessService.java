@@ -1,22 +1,26 @@
 package com.hbt.process.configuration.service;
 
 
-import com.hbt.process.configuration.model.*;
-import com.hbt.process.configuration.model.DTO.FrecuencyScheduledProcessDTO;
-import com.hbt.process.configuration.model.DTO.MonthsScheduledDTO;
+import com.hbt.process.configuration.model.ScheduledProcesses;
+import com.hbt.process.configuration.model.mapper.IMonthScheduleWrapper;
+import com.hbt.process.configuration.model.mapper.IScheduledProcessMapper;
+import com.hbt.process.configuration.model.mapper.IWeeksDayMapper;
 import com.hbt.process.configuration.repository.IDaysRepository;
 import com.hbt.process.configuration.repository.IMonthRepository;
 import com.hbt.process.configuration.repository.IProcessConfiguration;
 import com.hbt.process.configuration.repository.IScheduledProcess;
+import com.hbt.scheduled.process.commons.model.DTO.FrecuencyScheduledProcessDTO;
+import com.hbt.scheduled.process.commons.model.DTO.MonthsScheduledDTO;
+import com.hbt.scheduled.process.commons.model.DTO.ScheduledProcessDTO;
+import com.hbt.scheduled.process.commons.model.DTO.WeekDaysDTO;
+import com.hbt.scheduled.process.commons.model.FrecuencyScheduledProcess;
+import com.hbt.scheduled.process.commons.model.StatusScheduledProcess;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.NotFoundException;
-import java.text.DateFormatSymbols;
-import java.time.Month;
-import java.time.format.TextStyle;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @ApplicationScoped
 @Slf4j
@@ -28,76 +32,87 @@ public class ProcessService implements IProcessService {
     IScheduledProcess processConfiguration;
     IMonthRepository monthRepository;
 
+    private final IMonthScheduleWrapper monthsScheduleWrapper;
+    private final IScheduledProcessMapper scheduledProcessMapper;
+    private final IWeeksDayMapper weekDayMapper;
+
+
     public ProcessService(IProcessConfiguration procesessRepository,
                           IDaysRepository daysRepository,
                           IScheduledProcess processConfiguration,
-                          IMonthRepository monthRepository) {
+                          IMonthRepository monthRepository,
+                          IMonthScheduleWrapper monthsScheduleWrapper,
+                          IScheduledProcessMapper scheduledProcessMapper,
+                          IWeeksDayMapper weekDayMapper) {
 
         this.procesessRepository = procesessRepository;
         this.daysRepository = daysRepository;
         this.processConfiguration = processConfiguration;
         this.monthRepository = monthRepository;
+        this.monthsScheduleWrapper = monthsScheduleWrapper;
+        this.scheduledProcessMapper = scheduledProcessMapper;
+        this.weekDayMapper = weekDayMapper;
 
     }
 
-    private DateFormatSymbols formatSymbols = DateFormatSymbols.getInstance(new Locale("es"));
-
-
-
-
-
-
-
     @Override
-    public List<ScheduledProcesses> getProcessList(){
-        return procesessRepository.findAll();
+    public List<ScheduledProcessDTO> getProcessList(){
+        return scheduledProcessMapper
+                .convertScheduledProcessToDTO(procesessRepository.findAll());
     }
 
     @Override
-    public ScheduledProcesses getProcessById(Long id){
-        return procesessRepository.findById(id)
+    public ScheduledProcessDTO getProcessById(Long id){
+        return scheduledProcessMapper.toDTO(procesessRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Proceso no encontrado")));
+    }
+
+    @Override
+    public ScheduledProcessDTO create(ScheduledProcessDTO processes){
+        log.info("Ingreso al servicio create " + processes);
+        ScheduledProcesses scheduledProcesses = scheduledProcessMapper.toDAO(processes);
+        log.info("Este es el DAO " + scheduledProcesses);
+        return scheduledProcessMapper.toDTO(procesessRepository.save(scheduledProcesses));
+    }
+
+    @Override
+    public ScheduledProcessDTO update(ScheduledProcessDTO processes)  {
+
+        ScheduledProcesses dao = scheduledProcessMapper.toDAO(processes);
+
+        ScheduledProcesses scheduledProcesses = procesessRepository
+                .findById(dao.getIdProcesoProgramado())
                 .orElseThrow(() -> new NotFoundException("Proceso no encontrado"));
-    }
 
-    @Override
-    public ScheduledProcesses create(ScheduledProcesses processes){
+        scheduledProcesses.setStatusScheduledProcess(dao.getStatusScheduledProcess());
+        scheduledProcesses.setNombreProcesoProgramado(dao.getNombreProcesoProgramado());
+        scheduledProcesses.setProcessProperty(dao.getProcessProperty());
+        scheduledProcesses.setNumeroReintentos(dao.getNumeroReintentos());
+        scheduledProcesses.setScheduledConfiguration(dao.getScheduledConfiguration());
 
-        return procesessRepository.save(processes);
-    }
-
-    @Override
-    public ScheduledProcesses update(ScheduledProcesses processes)  {
-
-        ScheduledProcesses scheduledProcesses = getProcessById(processes.getIdProcesoProgramado());
-
-        scheduledProcesses.setStatusScheduledProcess(processes.getStatusScheduledProcess());
-        scheduledProcesses.setNombreProcesoProgramado(processes.getNombreProcesoProgramado());
-        scheduledProcesses.setProcessProperty(processes.getProcessProperty());
-        scheduledProcesses.setNumeroReintentos(processes.getNumeroReintentos());
-        scheduledProcesses.setScheduledConfiguration(processes.getScheduledConfiguration());
-
-        return procesessRepository.save(scheduledProcesses);
+        return scheduledProcessMapper.toDTO(procesessRepository.save(scheduledProcesses));
 
     }
 
     @Override
     public void delete(Long id){
-        procesessRepository.deleteById(id);
+        if(procesessRepository.findById(id).stream()
+                .anyMatch(status -> status.getStatusScheduledProcess().equals(StatusScheduledProcess.ESPERA)
+                || status.getStatusScheduledProcess().equals(StatusScheduledProcess.INACTIVO)
+                || status.getStatusScheduledProcess().equals(StatusScheduledProcess.FINALIZADO))){
+
+                    procesessRepository.deleteById(id);
+        }
+
+
     }
 
 
     @Override
-    public List<WeekDays> getDays(){
-        return daysRepository.findAll();
+    public List<WeekDaysDTO> getDays(){
+        return weekDayMapper.convertDaysOfWeekToDTO(daysRepository.findAll());
     }
 
-
-    @Override
-    public List<ScheduledConfiguration> getScheduledConfiguration(){
-
-        return processConfiguration.findAll();
-
-    }
 
     @Override
     public List<FrecuencyScheduledProcessDTO> getFrecuencyScheduledProcess() {
@@ -116,36 +131,11 @@ public class ProcessService implements IProcessService {
     @Override
     public List<MonthsScheduledDTO> getMonths() {
 
-        List<Months> meses = monthRepository.findAll();
-
-        if (meses.stream().count() == 0){
-            for(Month mes : Month.values()){
-                meses.add(Months.builder()
-                        .months(mes)
-                        .build());
-            }
-            monthRepository.saveAll(meses);
-        }
-
-
-        return meses.stream()
-                .map(month -> MonthsScheduledDTO.builder()
-                        .id(month.getId())
-                        .name(capitalLetter(month.getMonths().
-                                getDisplayName(TextStyle.FULL,
-                                        new Locale("es"))))
-                        .build()
-                )
-                .collect(Collectors.toList());
-
-
+        return monthsScheduleWrapper.convertMonthsToDTO(monthRepository.findAll());
 
     }
 
 
-    private String capitalLetter(String month){
-        return Character.toUpperCase(month.charAt(0)) + month.substring(1);
-    }
 
 
 }

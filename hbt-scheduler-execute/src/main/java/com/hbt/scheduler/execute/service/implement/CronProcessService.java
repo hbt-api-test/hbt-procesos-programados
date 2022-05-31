@@ -1,24 +1,29 @@
 package com.hbt.scheduler.execute.service.implement;
 
-import com.hbt.scheduler.execute.model.ScheduleTask;
+import com.hbt.scheduled.process.commons.model.DTO.ScheduleConfigurationDTO;
+import com.hbt.scheduled.process.commons.model.DTO.ScheduledProcessDTO;
+import com.hbt.scheduler.execute.client.IConfigTaskClient;
 import com.hbt.scheduler.execute.service.ICronProcessService;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
-import org.quartz.DateBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.text.ParseException;
-import java.util.stream.Stream;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Slf4j
 public class CronProcessService implements ICronProcessService {
 
     private static final String WILDCARTS = "*";
-    private static final int COMPONENT_WILDCART = 0;
-    private static final int TIME_WILDCART = 99;
 
+    @Inject
+    @RestClient
+    IConfigTaskClient configTaskClient;
 
     @Override
     public Boolean validCronExpressions(String cronExpression) {
@@ -26,12 +31,14 @@ public class CronProcessService implements ICronProcessService {
     }
 
     @Override
-    public String getCronExpression(ScheduleTask scheduleTask) {
+    public String getCronExpression(ScheduleConfigurationDTO scheduleTask) {
         return cronExpressionBuild(scheduleTask);
     }
 
+
+
     @Override
-    public CronScheduleBuilder getCronSchedule(ScheduleTask scheduleTask) {
+    public CronScheduleBuilder getCronSchedule(ScheduleConfigurationDTO scheduleTask) {
         CronScheduleBuilder cronScheduleBuilder = null;
         try {
             cronScheduleBuilder = CronScheduleBuilder
@@ -42,87 +49,62 @@ public class CronProcessService implements ICronProcessService {
         }
     }
 
-
-    private String cronExpressionBuild(ScheduleTask scheduleTask){
-
-        String allDaysOfWeek;
-
-        if(scheduleTask.getDaysOfWeek().size() != COMPONENT_WILDCART
-                && !scheduleTask.getDaysOfWeek().isEmpty()
-        ){
-
-            if(!scheduleTask.getDaysOfWeek().get(COMPONENT_WILDCART).equals(COMPONENT_WILDCART)) {
-
-                scheduleTask.getDaysOfWeek()
-                        .forEach(day ->
-                                DateBuilder.validateDayOfWeek(day)
-                        );
-
-                allDaysOfWeek =  scheduleTask.getDaysOfWeek().get(COMPONENT_WILDCART).toString();
-
-            }else{
-
-                allDaysOfWeek = WILDCARTS;
-
-            }
-
-            String hours = validDateComponent(scheduleTask.getHour(), ScheduledProcessService.ValidDate.HOUR);
-            String minutes = validDateComponent(scheduleTask.getMinutes(), ScheduledProcessService.ValidDate.MINUTES);
-            String month = validDateComponent(scheduleTask.getMonth(), ScheduledProcessService.ValidDate.MONTH);
-            String dayOfMonth = validDateComponent(scheduleTask.getDayOfMonth(), ScheduledProcessService.ValidDate.DAY_OF_MONTH);
-
-
-            String cronExpression =String.format("%s %s %s ? %s %s",
-                    minutes,
-                    hours,
-                    dayOfMonth,
-                    month,
-                    allDaysOfWeek
-            );
-
-            if(!allDaysOfWeek.equals("0")){
-
-                Stream.of(scheduleTask)
-                        .peek( day -> cronExpression.concat(",").concat(day.getDaysOfWeek().toString()));
-
-            }
-
-            return cronExpression;
-
-        } else {
-            throw new IllegalArgumentException("Debera especificar al menos un dia de la semana");
-        }
-
+    @Override
+    public void executeTask(Long id) throws Exception {
+        ScheduledProcessDTO processDTO = configTaskClient.getProcess(id).readEntity(ScheduledProcessDTO.class);
+        log.info("Nombre " + processDTO.getNombreProcesoProgramado());
     }
 
 
-    private String validDateComponent(int component, ScheduledProcessService.ValidDate validDate){
-        String data;
-        log.info("Componente: " + component);
-        log.info("validDate: " + validDate);
-        if(component == COMPONENT_WILDCART || component == TIME_WILDCART){
-            data = WILDCARTS;
-        }else{
-            switch (validDate){
-                case MONTH:
-                    DateBuilder.validateMonth(component);
-                    break;
-                case DAY_OF_MONTH:
-                    DateBuilder.validateDayOfMonth(component);
-                    break;
-                case HOUR:
-                    DateBuilder.validateHour(component);
-                    break;
-                case MINUTES:
-                    DateBuilder.validateMinute(component);
-                    break;
-                case DAY_OF_WEEK:
-                    DateBuilder.validateDayOfWeek(component);
-                    break;
-            }
-            data = String.valueOf(component);
+    private String cronExpressionBuild(ScheduleConfigurationDTO scheduleTask){
+
+        String allDaysOfWeek = "", allMonths = "";
+
+        if(scheduleTask.getDaysOfWeek().isEmpty()){
+            allDaysOfWeek = WILDCARTS;
         }
 
-        return data;
+        if(scheduleTask.getMonths().isEmpty()){
+            allMonths = WILDCARTS;
+        }
+
+        if(!allDaysOfWeek.equals(WILDCARTS)){
+            if(scheduleTask.validDaysOfWeek()){
+                 allDaysOfWeek = scheduleTask.getDaysOfWeek()
+                         .stream()
+                         .map(day -> scheduleTask.getDayOfWeekName(day.getId().intValue(), Locale.US))
+                         .collect(Collectors.joining(","));
+            }
+        }
+
+        if(!allMonths.equals(WILDCARTS)){
+            if(scheduleTask.validMonths()){
+                allMonths = scheduleTask.getMonths()
+                        .stream()
+                        .map(mes -> scheduleTask.getMonthName(mes.getId().intValue(),Locale.US))
+                        .collect(Collectors.joining(","));
+            }
+        }
+        String hour =  scheduleTask.getValidHour();
+        String minute =  scheduleTask.getValidMinutes();
+        String day =  scheduleTask.getValidDayOfMonth();
+
+        String cronExpression =String.format("%s %s %s ? %s %s",
+                minute,
+                hour,
+                day,
+                allMonths,
+                allDaysOfWeek
+        );
+
+        if(!validCronExpressions(cronExpression)){
+            throw new IllegalArgumentException("No es una expresión CRON valida");
+        }
+
+        return cronExpression;
+
+
+
     }
+
 }

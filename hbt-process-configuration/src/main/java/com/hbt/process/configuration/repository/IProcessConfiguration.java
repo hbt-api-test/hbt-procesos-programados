@@ -7,4 +7,5 @@ import javax.inject.Singleton;
 
 @Singleton
 public interface IProcessConfiguration extends JpaRepository<ScheduledProcesses, Long> {
+    //void deleteByIdAndStatusScheduledProcessIn(Long id, List<StatusScheduledProcess> statusScheduledProcessList);
 }
